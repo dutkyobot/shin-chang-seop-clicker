@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>신창섭 키우기: 정상화의 길</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        :root {
+            --primary: #fbbf24;
+            --primary-dark: #d97706;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Pretendard', sans-serif;
+            display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden;
+            -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+        }
+
+        /* 닉네임 입력 모달 */
+        #login-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            display: flex; justify-content: center; align-items: center; z-index: 3000;
+        }
+        #login-box {
+            background: var(--bg-card); padding: 40px; border-radius: 24px; border: 2px solid var(--primary);
+            text-align: center; width: 90%; max-width: 380px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        #login-box h2 { color: var(--primary); margin-bottom: 25px; font-size: 1.8rem; font-weight: 900; }
+        #nickname-input, #password-input {
+            width: 100%; padding: 14px; border-radius: 12px; border: 2px solid #334155; margin-bottom: 20px;
+            font-size: 1rem; text-align: center; box-sizing: border-box; background: #0f172a; color: white;
+        }
+        #password-area { display: none; }
+        #start-btn {
+            width: 100%; padding: 14px; background: var(--primary); color: #000; border: none;
+            border-radius: 12px; font-weight: 900; cursor: pointer; font-size: 1.1rem;
+        }
+
+        /* 업데이트 알림 팝업 */
+        #update-toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: #000; padding: 12px 24px; border-radius: 50px;
+            font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            z-index: 5000; display: none; cursor: pointer; animation: bounce 1s infinite;
+            font-size: 0.9rem; border: 2px solid #000;
+        }
+        @keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-8px); } }
+
+        /* 메인 레이아웃 */
+        #game-container {
+            display: none; flex-direction: column; height: 100%; width: 100%;
+            position: relative;
+        }
+
+        /* 상단 점수 영역 */
+        #header-area {
+            padding: 20px 10px; background: var(--bg-card); border-bottom: 2px solid var(--primary);
+            text-align: center; z-index: 10;
+        }
+        #points { font-size: 2.8rem; font-weight: 900; color: var(--primary); text-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
+        #pps { font-size: 1rem; color: var(--text-dim); margin-top: 5px; font-weight: 600; }
+
+        /* 중앙 콘텐츠 영역 */
+        #content-area {
+            flex: 1; display: flex; overflow: hidden;
+        }
+
+        /* 메인 클릭 영역 */
+        #main-area {
+            flex: 1.5; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; position: relative;
+            background: radial-gradient(circle at center, #1e40af 0%, #0f172a 100%);
+        }
+        #rank-display { 
+            position: absolute; top: 20px; left: 20px; 
+            background: rgba(251, 191, 36, 0.15); padding: 8px 16px; 
+            border-radius: 50px; border: 1.5px solid var(--primary); 
+            font-weight: 900; color: var(--primary); font-size: 0.85rem;
+        }
+
+        #boss-container {
+            width: 280px; height: 280px; cursor: pointer; position: relative;
+            transition: transform 0.05s; z-index: 10;
+        }
+        #boss-container:active { transform: scale(0.94); }
+        #boss-img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+            border: 8px solid var(--primary); box-shadow: 0 0 50px rgba(251, 191, 36, 0.5);
+        }
+        .aura {
+            position: absolute; inset: -20px; border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent, var(--primary), transparent);
+            animation: rotate 4s linear infinite; opacity: 0.4;
+        }
+
+        /* PC 레이아웃 사이드바 (3단 구성 복구) */
+        .side-panel {
+            flex: 0.8; display: flex; flex-direction: column; background: var(--bg-dark);
+            border-left: 1px solid #334155;
+        }
+        #shop-area { border-left: none; border-right: 1px solid #334155; }
+        
+        .panel-header { 
+            padding: 18px; background: var(--bg-card); color: var(--primary); 
+            font-weight: 900; font-size: 1.1rem; text-align: center;
+            border-bottom: 1px solid #334155;
+        }
+        #rank-area .panel-header { color: var(--accent); }
+        
+        .scroll-list { flex: 1; overflow-y: auto; padding: 15px; }
+
+        /* 모바일용 탭 바 */
+        #mobile-tabs { display: none; background: var(--bg-card); border-top: 1px solid #334155; }
+        .tab-btn {
+            flex: 1; padding: 15px; border: none; background: none; color: var(--text-dim);
+            font-weight: 900; cursor: pointer; font-size: 0.95rem;
+        }
+        .tab-btn.active { color: var(--primary); border-top: 3px solid var(--primary); }
+
+        /* 아이템 스타일 (PC/모바일 통일감 부여) */
+        .shop-item {
+            background: var(--bg-card); border-radius: 16px; padding: 16px;
+            margin-bottom: 12px; cursor: pointer; transition: 0.2s; border: 2px solid transparent;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .shop-item:hover { border-color: var(--primary); background: #2d3748; transform: translateY(-2px); }
+        .shop-item.disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .item-info { display: flex; justify-content: space-between; align-items: center; }
+        .item-name { font-weight: 800; font-size: 1rem; }
+        .item-cost { color: var(--primary); font-weight: 900; font-size: 1rem; }
+
+        /* 랭킹 스타일 (PC/모바일 통일감 부여) */
+        .rank-item {
+            display: flex; justify-content: space-between; padding: 12px 15px;
+            border-bottom: 1px solid #334155; font-size: 0.9rem; font-weight: 600;
+            background: var(--bg-card); margin-bottom: 8px; border-radius: 12px;
+        }
+        .rank-item.top { color: var(--primary); font-weight: 900; border: 1px solid var(--primary); }
+        .rank-item.notice { 
+            background: rgba(59, 130, 246, 0.1); border: 1.5px solid var(--accent); 
+            border-radius: 12px; margin-bottom: 15px; flex-direction: column; color: var(--accent);
+            padding: 15px;
+        }
+        .notice-label { font-size: 0.75rem; font-weight: 900; margin-bottom: 6px; }
+
+        /* 하단 상태 바 */
+        #status-bar {
+            background: #020617; padding: 8px 20px; display: flex; justify-content: space-between;
+            font-size: 0.8rem; color: var(--text-dim); border-top: 1px solid #1e293b; z-index: 100;
+        }
+        .status-online { color: #22c55e; font-weight: bold; }
+        .status-offline { color: #ef4444; font-weight: bold; }
+
+        /* 음악 플레이어 */
+        #music-player {
+            position: absolute; bottom: 20px; left: 20px;
+            width: 200px; background: rgba(0, 0, 0, 0.85);
+            border-radius: 16px; border: 2px solid var(--primary); padding: 8px; z-index: 50;
+        }
+        .player-container { width: 100%; height: 90px; border-radius: 10px; overflow: hidden; }
+
+        /* 반응형 쿼리 (모바일 최적화 레이아웃) */
+        @media (max-width: 1024px) {
+            #content-area { flex-direction: column; position: relative; }
+            .side-panel { 
+                position: absolute; inset: 0; z-index: 20; display: none; 
+                background: var(--bg-dark); border: none;
+            }
+            .side-panel.active { display: flex; }
+            #main-area { flex: 1; width: 100%; }
+            #mobile-tabs { display: flex; }
+            #boss-container { width: 220px; height: 220px; }
+            #points { font-size: 2.2rem; }
+            #music-player { width: 150px; bottom: 10px; left: 10px; }
+        }
+
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .click-text {
+            position: absolute; color: var(--primary); font-weight: 900; font-size: 1.5rem;
+            pointer-events: none; animation: floatUp 0.7s forwards; z-index: 100;
+        }
+        @keyframes floatUp { 0% { transform: translateY(0) opacity(1); } 100% { transform: translateY(-120px) opacity(0); } }
+    </style>
+</head>
+<body>
+
+<div id="update-toast" onclick="applyUpdate()">🚀 새로운 업데이트! (클릭하여 적용)</div>
+
+<div id="login-overlay">
+    <div id="login-box">
+        <h2>신창섭 키우기</h2>
+        <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 0.95rem;">정상화에 참여할 닉네임을 입력하세요</p>
+        <input type="text" id="nickname-input" placeholder="닉네임 입력" maxlength="10" oninput="checkNickname(this.value)">
+        <div id="password-area">
+            <input type="password" id="password-input" placeholder="비밀번호 입력">
+        </div>
+        <button id="start-btn" onclick="startGame()">정상화 시작</button>
+    </div>
+</div>
+
+<div id="game-container">
+    <div id="header-area">
+        <div id="points">0</div>
+        <div id="pps">초당 생산량: 0</div>
+    </div>
+
+    <div id="content-area">
+        <div id="shop-area" class="side-panel">
+            <div class="panel-header">정상화 상점</div>
+            <div id="shop-list" class="scroll-list"></div>
+        </div>
+
+        <div id="main-area">
+            <div id="rank-display">칭호: 정상화 입문자</div>
+            <div id="boss-container" onclick="handleClick(event)">
+                <div class="aura"></div>
+                <img id="boss-img" src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663320322906/TpfKyhtDhRhSaZxT.jpg" alt="신창섭">
+            </div>
+            <div id="music-player">
+                <div class="player-container">
+                    <iframe id="yt-player" width="100%" height="100%" src="" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div id="rank-area" class="side-panel">
+            <div class="panel-header">실시간 랭킹 & 공지</div>
+            <div id="rank-list" class="scroll-list"></div>
+        </div>
+    </div>
+
+    <div id="mobile-tabs">
+        <button class="tab-btn active" id="tab-main" onclick="openTab('main')">메인</button>
+        <button class="tab-btn" id="tab-shop" onclick="openTab('shop')">상점</button>
+        <button class="tab-btn" id="tab-rank" onclick="openTab('rank')">랭킹</button>
+    </div>
+
+    <div id="status-bar">
+        <div id="version-info">Version 1.5.0</div>
+        <div id="connection-status">Server: <span class="status-online" id="status-text">Checking...</span></div>
+    </div>
+</div>
+
+<script>
+    const VERSION = "1.5.0";
+    let nickname = "";
+    let points = 0;
+    let clickPower = 1;
+    let pps = 0;
+    let isUpdating = false;
+
+    const items = [
+        { id: 'helper1', name: '쌀숭이 퇴치기', cost: 15, pps: 1, count: 0 },
+        { id: 'helper2', name: 'BM 개선권', cost: 100, pps: 5, count: 0 },
+        { id: 'helper3', name: '정상화의 외침', cost: 500, pps: 20, count: 0 },
+        { id: 'up1', name: '강화된 마우스', cost: 50, power: 2, isUpgrade: true, bought: false },
+        { id: 'helper4', name: '신창섭의 가호', cost: 2000, pps: 100, count: 0 }
+    ];
+
+    function openTab(tabId) {
+        if (window.innerWidth > 1024) return;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('shop-area').classList.remove('active');
+        document.getElementById('rank-area').classList.remove('active');
+        
+        document.getElementById('tab-' + tabId).classList.add('active');
+        if (tabId !== 'main') {
+            document.getElementById(tabId + '-area').classList.add('active');
+        }
+    }
+
+    function checkNickname(val) {
+        const pwArea = document.getElementById('password-area');
+        pwArea.style.display = (val === "신창섭") ? 'block' : 'none';
+    }
+
+    function loadGame() {
+        const savedData = localStorage.getItem('shin_chang_sup_save');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            points = data.points || 0;
+            clickPower = data.clickPower || 1;
+            pps = data.pps || 0;
+            nickname = data.nickname || "";
+            if (data.items) {
+                data.items.forEach(savedItem => {
+                    const item = items.find(i => i.id === savedItem.id);
+                    if (item) {
+                        item.count = savedItem.count;
+                        item.cost = savedItem.cost;
+                        item.bought = savedItem.bought;
+                    }
+                });
+            }
+            if (nickname) {
+                document.getElementById('nickname-input').value = nickname;
+                checkNickname(nickname);
+            }
+        }
+    }
+
+    function saveGame() {
+        const data = {
+            points, clickPower, pps, nickname,
+            items: items.map(i => ({ id: i.id, count: i.count, cost: i.cost, bought: i.bought }))
+        };
+        localStorage.setItem('shin_chang_sup_save', JSON.stringify(data));
+    }
+
+    async function checkStatus() {
+        const statusText = document.getElementById('status-text');
+        try {
+            const res = await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/health');
+            const data = await res.json();
+            if (data.status === "online") {
+                statusText.innerText = "Online";
+                statusText.className = "status-online";
+            }
+        } catch (e) {
+            statusText.innerText = "Offline";
+            statusText.className = "status-offline";
+        }
+    }
+
+    async function checkVersion() {
+        if (isUpdating) return;
+        try {
+            const res = await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/version');
+            const data = await res.json();
+            // 로컬 스토리지에 저장된 마지막 확인 버전과 비교하여 무한 알림 방지
+            const lastVersion = localStorage.getItem('last_notified_version');
+            if (data.version !== VERSION && data.version !== lastVersion) {
+                document.getElementById('update-toast').style.display = 'block';
+            } else {
+                document.getElementById('update-toast').style.display = 'none';
+            }
+        } catch (e) {}
+    }
+
+    function applyUpdate() {
+        isUpdating = true;
+        saveGame();
+        // 업데이트 적용 시 현재 서버 버전을 마지막 확인 버전으로 저장
+        fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/version').then(r => r.json()).then(data => {
+            localStorage.setItem('last_notified_version', data.version);
+            location.reload();
+        });
+    }
+
+    async function startGame() {
+        const input = document.getElementById('nickname-input').value.trim();
+        if (!input) return alert("닉네임을 입력해주세요!");
+        
+        if (input === "신창섭") {
+            const pw = document.getElementById('password-input').value.trim();
+            if (pw !== "maple") return alert("비밀번호가 틀렸습니다!");
+            
+            try {
+                const res = await fetch(`https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/get_score/${encodeURIComponent(input)}`);
+                const data = await res.json();
+                if (data.score > points) {
+                    points = data.score;
+                    alert(`기존 기록(${points.toLocaleString()}점)을 복구했습니다!`);
+                }
+            } catch (e) {}
+        }
+
+        nickname = input;
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('game-container').style.display = 'flex';
+        document.getElementById('yt-player').src = "https://www.youtube.com/embed/7Ru7fI9OyGs?autoplay=1&playlist=7Ru7fI9OyGs,ih-Qhb3Fz1M,7Ru7fI9OyGs,PLHxKuOycbOoXmi6L_HUqR4REcboGdUozo";
+        
+        // PC 모드일 경우 사이드 패널 활성화
+        if (window.innerWidth > 1024) {
+            document.getElementById('shop-area').classList.add('active');
+            document.getElementById('rank-area').classList.add('active');
+        }
+        
+        updateDisplay();
+        startLoops();
+    }
+
+    function handleClick(e) {
+        points += clickPower;
+        updateDisplay();
+        const x = e.clientX || (e.touches && e.touches[0].clientX);
+        const y = e.clientY || (e.touches && e.touches[0].clientY);
+        showClickText(x, y, `+${clickPower}`);
+        saveGame();
+    }
+
+    function showClickText(x, y, text) {
+        const div = document.createElement('div');
+        div.className = 'click-text';
+        div.innerText = text;
+        div.style.left = (x - 20) + 'px';
+        div.style.top = (y - 20) + 'px';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 700);
+    }
+
+    function updateDisplay() {
+        document.getElementById('points').innerText = Math.floor(points).toLocaleString();
+        document.getElementById('pps').innerText = `초당 생산량: ${pps.toLocaleString()}`;
+        renderShop();
+        checkRankTitle();
+    }
+
+    function checkRankTitle() {
+        let title = "정상화 입문자";
+        if (points >= 100000) title = "유일신 신창섭";
+        else if (points >= 10000) title = "정상화의 지배자";
+        else if (points >= 1000) title = "숙련된 정상화꾼";
+        document.getElementById('rank-display').innerText = `칭호: ${title}`;
+    }
+
+    function renderShop() {
+        const list = document.getElementById('shop-list');
+        list.innerHTML = '';
+        items.forEach(item => {
+            if (item.isUpgrade && item.bought) return;
+            const div = document.createElement('div');
+            div.className = `shop-item ${points < item.cost ? 'disabled' : ''}`;
+            div.onclick = () => buyItem(item);
+            div.innerHTML = `
+                <div class="item-info">
+                    <span class="item-name">${item.name} ${item.count !== undefined ? '('+item.count+')' : ''}</span>
+                    <span class="item-cost">💰 ${item.cost}</span>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function buyItem(item) {
+        if (points < item.cost) return;
+        points -= item.cost;
+        if (item.isUpgrade) { clickPower *= item.power; item.bought = true; }
+        else { item.count++; pps += item.pps; item.cost = Math.floor(item.cost * 1.15); }
+        updateDisplay();
+        saveGame();
+    }
+
+    function startLoops() {
+        setInterval(() => { if (pps > 0) { points += pps / 10; updateDisplay(); saveGame(); } }, 100);
+        setInterval(async () => {
+            try {
+                await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/update_score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname, score: Math.floor(points) })
+                });
+                fetchRanking();
+            } catch (e) {}
+        }, 5000);
+        setInterval(checkVersion, 10000);
+        setInterval(checkStatus, 5000);
+        fetchRanking();
+        checkVersion();
+        checkStatus();
+    }
+
+    async function fetchRanking() {
+        try {
+            const res = await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/get_ranking');
+            const data = await res.json();
+            const list = document.getElementById('rank-list');
+            list.innerHTML = data.map((r, i) => {
+                if (r.nickname === "[공지]") {
+                    return `<div class="rank-item notice"><div class="notice-label">📢 공지사항</div><div class="notice-content">${r.score}</div></div>`;
+                }
+                return `<div class="rank-item ${i < 4 && i > 0 ? 'top' : ''}"><span>${i}. ${r.nickname}</span><span>${r.score.toLocaleString()}</span></div>`;
+            }).join('');
+        } catch (e) {}
+    }
+
+    // 창 크기 변경 시 레이아웃 자동 조정
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) {
+            document.getElementById('shop-area').style.display = 'flex';
+            document.getElementById('rank-area').style.display = 'flex';
+            document.getElementById('shop-area').classList.add('active');
+            document.getElementById('rank-area').classList.add('active');
+        } else {
+            openTab('main');
+        }
+    });
+
+    loadGame();
+    checkVersion();
+    checkStatus();
+</script>
+</body>
+</html>
