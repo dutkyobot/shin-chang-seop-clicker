@@ -1,0 +1,8 @@
+{
+  "name": "shin-chang-seop-clicker",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'No build needed'",
+    "deploy": "echo 'Deploying static assets...'"
+  }
+}
