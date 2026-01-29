@@ -321,42 +321,18 @@
 
     async function checkStatus() {
         const statusText = document.getElementById('status-text');
-        try {
-            const res = await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/health');
-            const data = await res.json();
-            if (data.status === "online") {
-                statusText.innerText = "Online";
-                statusText.className = "status-online";
-            }
-        } catch (e) {
-            statusText.innerText = "Offline";
-            statusText.className = "status-offline";
-        }
+        statusText.innerText = "Online (Permanent)";
+        statusText.className = "status-online";
     }
 
     async function checkVersion() {
-        if (isUpdating) return;
-        try {
-            const res = await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/version');
-            const data = await res.json();
-            // 로컬 스토리지에 저장된 마지막 확인 버전과 비교하여 무한 알림 방지
-            const lastVersion = localStorage.getItem('last_notified_version');
-            if (data.version !== VERSION && data.version !== lastVersion) {
-                document.getElementById('update-toast').style.display = 'block';
-            } else {
-                document.getElementById('update-toast').style.display = 'none';
-            }
-        } catch (e) {}
+        document.getElementById('update-toast').style.display = 'none';
     }
 
     function applyUpdate() {
         isUpdating = true;
         saveGame();
-        // 업데이트 적용 시 현재 서버 버전을 마지막 확인 버전으로 저장
-        fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/version').then(r => r.json()).then(data => {
-            localStorage.setItem('last_notified_version', data.version);
-            location.reload();
-        });
+        location.reload();
     }
 
     async function startGame() {
@@ -368,7 +344,7 @@
             if (pw !== "maple") return alert("비밀번호가 틀렸습니다!");
             
             try {
-                const res = await fetch(`https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/get_score/${encodeURIComponent(input)}`);
+                const res = await fetch(`/api/ranking?action=get_score&nickname=${encodeURIComponent(input)}`);
                 const data = await res.json();
                 if (data.score > points) {
                     points = data.score;
@@ -382,7 +358,6 @@
         document.getElementById('game-container').style.display = 'flex';
         document.getElementById('yt-player').src = "https://www.youtube.com/embed/7Ru7fI9OyGs?autoplay=1&playlist=7Ru7fI9OyGs,ih-Qhb3Fz1M,7Ru7fI9OyGs,PLHxKuOycbOoXmi6L_HUqR4REcboGdUozo";
         
-        // PC 모드일 경우 사이드 패널 활성화
         if (window.innerWidth > 1024) {
             document.getElementById('shop-area').classList.add('active');
             document.getElementById('rank-area').classList.add('active');
@@ -457,7 +432,7 @@
         setInterval(() => { if (pps > 0) { points += pps / 10; updateDisplay(); saveGame(); } }, 100);
         setInterval(async () => {
             try {
-                await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/update_score', {
+                await fetch('/api/ranking', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nickname, score: Math.floor(points) })
@@ -465,16 +440,13 @@
                 fetchRanking();
             } catch (e) {}
         }, 5000);
-        setInterval(checkVersion, 10000);
-        setInterval(checkStatus, 5000);
         fetchRanking();
-        checkVersion();
         checkStatus();
     }
 
     async function fetchRanking() {
         try {
-            const res = await fetch('https://8080-iglhbdesvcld2822dmyoi-931aa24c.sg1.manus.computer/get_ranking');
+            const res = await fetch('/api/ranking?action=get_ranking');
             const data = await res.json();
             const list = document.getElementById('rank-list');
             list.innerHTML = data.map((r, i) => {
@@ -486,7 +458,6 @@
         } catch (e) {}
     }
 
-    // 창 크기 변경 시 레이아웃 자동 조정
     window.addEventListener('resize', () => {
         if (window.innerWidth > 1024) {
             document.getElementById('shop-area').style.display = 'flex';
@@ -499,7 +470,6 @@
     });
 
     loadGame();
-    checkVersion();
     checkStatus();
 </script>
 </body>
